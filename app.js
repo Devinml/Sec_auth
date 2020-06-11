@@ -61,48 +61,54 @@ app.get('/register',function(req,res){
     res.render('register.ejs');
 });
 
+app.get('/secrets', function(req,res){
+    
+    if(req.isAuthenticated()){
+        res.render('secrets');
+    }else{
+        res.redirect('/login');
+    }
+})
+
 app.post('/register', function(req,res){
    
-    bcrypt.hash(req.body.password, salt, function(err, hash) {
-        const newUser = new User({
-            email: req.body.username,
-            password: hash
-            
-        });
-        newUser.save(function(err){
-            if(err){
-                console.log(err);
-            }else{
-                res.render('secrets');
-            }
-        });
-    });
-   
-    
-})
-
-app.post('/login', function(req,res){
-    const username = req.body.username;
-    const password = req.body.password;
-
-    User.findOne({email: username}, function(err, foundUser){
+    User.register({username: req.body.username}, req.body.password, function(err,user){
         if(err){
             console.log(err);
+            res.redirect('/register');
+
         }else{
-            if(foundUser){
-                bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
-                   if(result===true){
-                       res.render('secrets');
-                   }
-                });
-                    
-                
-            }
-        }
-    })
-})
+            passport.authenticate('local')(req,res, function(){
+                res.redirect('/secrets')
+            });
+        };
+    });
+
+});
+
+app.post('/login', function(req,res){
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password
+    });
+    req.login(user, function(err){
+        if (err){
+            console.log(err);
+        }else{
+            passport.authenticate('local')(req,res, function(){
+                res.redirect('/secrets')
+            });
+        };
+    });
+ 
+});
+
+app.get('/logout', function(req,res){
+    req.logout();
+    res.redirect('/');
+});
 
 
 app.listen(3000,function(res,req){
     console.log('Server Started')
-})
+});
